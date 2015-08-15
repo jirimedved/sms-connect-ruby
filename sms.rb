@@ -3,6 +3,7 @@
 require 'digest/md5'
 require 'optparse'
 require 'faraday'
+require 'yaml'
 
 
 unless ARGV.size > 0
@@ -14,8 +15,6 @@ end
 options = {}
 
 ARGV.options do |opts|
-  opts.on('-u', '--username USERNAME', String) { |value| options[:username] = value }
-  opts.on('-p', '--password PASSWORD', String) { |value| options[:password] = value }
   opts.on('-r', '--recipient RECIPIENT', String) { |value| options[:recipient] = value }
   opts.on('-m', '--message MESSAGE', String) { |value| options[:message] = value }
   opts.parse!
@@ -24,16 +23,17 @@ end
 class SMS
   def initialize(options)
     @options = options
+    @credentials = YAML.load_file('/etc/sms-connect/sms.yml')[:sms]
     @api = 'http://api.smsbrana.cz/smsconnect/http.php'
 
     @time = Time.now.strftime("%Y%m%dT%H%M%S")
     @salt = genhash
 
     @apiargs = {
-      login: @options[:username],
+      login: @credentials[:username],
       sul: @salt,
       time: @time,
-      hash: Digest::MD5.hexdigest(@options[:password] + @time + @salt)
+      hash: Digest::MD5.hexdigest(@credentials[:password] + @time + @salt)
     }
   end
 
@@ -47,10 +47,10 @@ class SMS
     conn = Faraday.new
     response = conn.get @api, @apiargs
     puts response.body
+    exit
   end
 end
 
 
 sms = SMS.new(options)
 sms.send
-

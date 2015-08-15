@@ -1,0 +1,5 @@
+# sms-connect config file
+
+:sms:
+    :username: test
+    :password: test
